@@ -11,6 +11,41 @@
 
 
  'use strict';
+var containerNo_booked = [];
+console.log(containerNo_booked);
+
+(async () => {
+    var response = await fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vRjJHPVrQ17-TI1ayu7AQLNoPW8PeegAb9vv7b4qvzPuK1IPtcSqFVK29CxojeeF_WpgFUNSH5vKX1T/pubhtml');
+    switch (response.status) {
+        // status "OK"
+        case 200:
+            var template = await response.text();
+
+
+            var htmlObject = document.createElement('div');
+            htmlObject.innerHTML = template;
+            //htmlObject.getElementById("myDiv").style.marginTop = "10px";
+
+            var containerBooked = htmlObject.getElementsByTagName("td");
+
+            for (let i = 0; i < containerBooked.length; i += 1) {
+                containerNo_booked[i] = containerBooked[i].children[0].innerHTML;
+            }
+
+            htmlObject.remove();
+            console.log(containerBooked);
+            break;
+        // status "Not Found"
+        case 404:
+            console.log('Not Found');
+            break;
+    }
+})();
+
+
+
+
+
 const interval = setInterval(function() {
 
     var listContAtBay, listMethodAtList, listContAtList, containerNo;
@@ -21,6 +56,9 @@ const interval = setInterval(function() {
 
     for (let i = 0; i < listContAtBay.length; i += 1) {
         containerNo = listContAtBay[i].children[1].innerHTML;
+        if(containerNo_booked.includes(containerNo)){
+            document.getElementsByClassName("cell-yard cell-container")[i].style.backgroundColor = "#ffcc99";
+        }
         listMethodAtList = document.getElementsByClassName("chat-list-item-photo");
         listContAtList = document.getElementsByClassName("chat-list-item-header");
         for(let j=0; j<listContAtList.length; j += 1){
@@ -63,6 +101,5 @@ const interval = setInterval(function() {
             }
         }
     }
-
  }, 3000);
-//https://raw.githubusercontent.com/PhamZung26/TTOSjs/main/TTOS.js
+
