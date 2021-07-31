@@ -104,14 +104,19 @@ const interval_fixBay = setInterval(function() {
 
             console.log("block_" + block_fixBay + "-bay_" + bay_fixBay);
 
-		}//else if(!exist && linebay.length == 3){
+		}else if(!exist && linebay.length == 3){
 			//Nếu không tồn tại fixBay và đang có 2 bay hiển thị
 			// Coi như người dùng bỏ ghim Bay
-			//ghimmBay.innerHTML = "Cố Định";
-			//ghimmBay.setAttribute("class", "btn btn-success");
-			//fixBay = "";
 
-		//}
+			ghimmBay.innerHTML = "Đã gỡ ghim";
+            ghimmBay.setAttribute("class", "btn btn-warning");
+            sleep(2000).then(() => {
+                ghimmBay.innerHTML = "Cố Định";
+                ghimmBay.setAttribute("class", "btn btn-success");
+            });
+			fixBay = "";
+
+		}
 	}
 
  }, 3000);
