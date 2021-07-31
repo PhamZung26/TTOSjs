@@ -32,7 +32,7 @@ console.log(containerNo_booked);
                 containerNo_booked[i] = containerBooked[i].children[0].innerHTML;
             }
 
-            htmlObject.remove();
+            htmlObject.remove(); // Xóa đoạn HTML vừa thêm.
             console.log(containerBooked);
             break;
         // status "Not Found"
@@ -55,18 +55,24 @@ const interval = setInterval(function() {
 
 
     for (let i = 0; i < listContAtBay.length; i += 1) {
+	    // Duyệt từng cell trên Bay
         containerNo = listContAtBay[i].children[1].innerHTML;
         if(containerNo_booked.includes(containerNo)){
+		// Nếu số cont tồn tại trong list đã cấp thì tô màu.
             document.getElementsByClassName("cell-yard cell-container")[i].style.backgroundColor = "#ffcc99";
         }
-        listMethodAtList = document.getElementsByClassName("chat-list-item-photo");
-        listContAtList = document.getElementsByClassName("chat-list-item-header");
+        listMethodAtList = document.getElementsByClassName("chat-list-item-photo"); // get list icon of method
+        listContAtList = document.getElementsByClassName("chat-list-item-header"); // get list cont at list
         for(let j=0; j<listContAtList.length; j += 1){
+		// Duyệt từng cell trên list
             if (containerNo == listContAtList[j].children[0].children[0].children[0].innerHTML) {
+		    // Nếu số cont trên bay trùng với số cont trên list => cont trên bay có phương án làm hàng
                 //console.log(containerNo);
                 for(let k=0; k<5; k +=1){
+			// Duyệt để tìm phương án làm hàng của cont.
                     if(listMethodAtList[j].children[k].className == ""){
-                        //Neu Class của method at list là "" thì đó là index của phương án đó
+                        //Neu Class của MethodAtList là "" thì icon của phương án đang hiển thị.
+			// Check xem icon đang hiển thị là icon thứ mấy.
                         // k = 0 là lệnh qua cổng
                         // k = 1 là lệnh yard đảo chuyển
                         // k = 2 là lệnh xuất tàu
