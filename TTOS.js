@@ -12,35 +12,45 @@
 
  'use strict';
 var containerNo_booked = [];
-console.log(containerNo_booked);
-
+var data = [];
+const interval_getlist = setInterval(function() {
 (async () => {
-    var response = await fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vRjJHPVrQ17-TI1ayu7AQLNoPW8PeegAb9vv7b4qvzPuK1IPtcSqFVK29CxojeeF_WpgFUNSH5vKX1T/pubhtml');
-    switch (response.status) {
-        // status "OK"
-        case 200:
-            var template = await response.text();
+fetch("https://spreadsheets.google.com/feeds/list/1Odf8bLbOZD0rWgqotvksyzZxDcz-aWA934uzxoQZ8WU/1/public/values?alt=json")
+  .then(res => res.json())
+  .then(json => {
+     /* this array will eventually be populated with the contents of the spreadsheet's rows */
 
+    const rows = json.feed.entry
 
-            var htmlObject = document.createElement('div');
-            htmlObject.innerHTML = template;
-            //htmlObject.getElementById("myDiv").style.marginTop = "10px";
+    for(const row of rows) {
+      const formattedRow = {}
 
-            var containerBooked = htmlObject.getElementsByTagName("td");
+      for(const key in row) {
+        if(key.startsWith("gsx$")) {
 
-            for (let i = 0; i < containerBooked.length; i += 1) {
-                containerNo_booked[i] = containerBooked[i].children[0].innerHTML;
-            }
+          /* The actual row names from your spreadsheet
+           * are formatted like "gsx$title".
+           * Therefore, we need to find keys in this object
+           * that start with "gsx$", and then strip that
+           * out to get the actual row name
+           */
 
-            htmlObject.remove();
-            console.log(containerBooked);
-            break;
-        // status "Not Found"
-        case 404:
-            console.log('Not Found');
-            break;
+          formattedRow[key.replace("gsx$", "")] = row[key].$t
+
+        }
+      }
+
+      data.push(formattedRow)
     }
+
+    var tieude = Object.getOwnPropertyNames(data[0])[0];
+    for(let n =0; n<data.length; n++){
+        containerNo_booked[n] = data[n][tieude];
+    }
+    console.log(containerNo_booked);
+  })
 })();
+}, 15000);
 
 
 
@@ -63,7 +73,7 @@ const interval = setInterval(function() {
         listContAtList = document.getElementsByClassName("chat-list-item-header");
         for(let j=0; j<listContAtList.length; j += 1){
             if (containerNo == listContAtList[j].children[0].children[0].children[0].innerHTML) {
-                //console.log(containerNo);
+                console.log(containerNo);
                 for(let k=0; k<5; k +=1){
                     if(listMethodAtList[j].children[k].className == ""){
                         //Neu Class của method at list là "" thì đó là index của phương án đó
