@@ -19,11 +19,11 @@ fetch("https://spreadsheets.google.com/feeds/list/1Odf8bLbOZD0rWgqotvksyzZxDcz-a
   .then(res => res.json())
   .then(json => {
      /* this array will eventually be populated with the contents of the spreadsheet's rows */
-
-    const rows = json.feed.entry
+    data = [];
+    const rows = json.feed.entry;
 
     for(const row of rows) {
-      const formattedRow = {}
+      const formattedRow = {};
 
       for(const key in row) {
         if(key.startsWith("gsx$")) {
@@ -35,12 +35,12 @@ fetch("https://spreadsheets.google.com/feeds/list/1Odf8bLbOZD0rWgqotvksyzZxDcz-a
            * out to get the actual row name
            */
 
-          formattedRow[key.replace("gsx$", "")] = row[key].$t
+          formattedRow[key.replace("gsx$", "")] = row[key].$t;
 
         }
       }
 
-      data.push(formattedRow)
+      data.push(formattedRow);
     }
 
     var tieude = Object.getOwnPropertyNames(data[0])[0];
