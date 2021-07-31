@@ -12,7 +12,7 @@
 
 
     'use strict';
-alert("Cấm mở");
+alert("KHÔNG MỞ CÁC TRANG WEB KHÁC");
 window.location.href = "https://ttos.tcis.co";
 
 
