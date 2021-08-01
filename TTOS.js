@@ -13,13 +13,14 @@
  'use strict';
 var containerNo_booked = [];
 var data = [];
-const interval_getlist = setInterval(function() {
+const interval_getlistBooked = setInterval(function() {
 (async () => {
-fetch("https://spreadsheets.google.com/feeds/list/1Odf8bLbOZD0rWgqotvksyzZxDcz-aWA934uzxoQZ8WU/1/public/values?alt=json")
+    fetch("https://spreadsheets.google.com/feeds/list/17JfxIWPJsNIisQFXu_lJvn_Vjb4b2oG3EeJ_3dZMk3Q/1/public/values?alt=json")
   .then(res => res.json())
   .then(json => {
      /* this array will eventually be populated with the contents of the spreadsheet's rows */
-    data = [];
+      data = [];
+      containerNo_booked = [];
     const rows = json.feed.entry;
 
     for(const row of rows) {
@@ -43,9 +44,14 @@ fetch("https://spreadsheets.google.com/feeds/list/1Odf8bLbOZD0rWgqotvksyzZxDcz-a
       data.push(formattedRow);
     }
 
-    var tieude = Object.getOwnPropertyNames(data[0])[0];
+      var tieude = Object.getOwnPropertyNames(data[0])[0];
+      var isbooked = Object.getOwnPropertyNames(data[0])[16];
+      var m = 0;
     for(let n =0; n<data.length; n++){
-        containerNo_booked[n] = data[n][tieude];
+        if (data[n][isbooked] != "") {
+            containerNo_booked[m] = data[n][tieude];
+            m++;
+        }
     }
     console.log(containerNo_booked);
   })
