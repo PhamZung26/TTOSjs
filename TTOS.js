@@ -143,7 +143,7 @@ const interval = setInterval(function() {
 	                            document.getElementsByClassName("cell-yard cell-container")[i].style.backgroundColor = "green";
 	                            break;
 	                        case 2:
-	                            document.getElementsByClassName("cell-yard cell-container")[i].style.backgroundColor = "#ff00ea";
+	                            document.getElementsByClassName("cell-yard cell-container")[i].style.backgroundColor = "#fce5cd";
 	                            break;
 	                        case 3:
 	                            document.getElementsByClassName("cell-yard cell-container")[i].style.backgroundColor = "red";
