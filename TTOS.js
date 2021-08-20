@@ -13,94 +13,77 @@
  'use strict';
 var containerNo_booked = [];
 const interval_getlistBooked = setInterval(function() {
-(async () => {
-    fetch("https://spreadsheets.google.com/feeds/list/17JfxIWPJsNIisQFXu_lJvn_Vjb4b2oG3EeJ_3dZMk3Q/1/public/values?alt=json")
-  .then(res => res.json())
-  .then(json => {
-     /* this array will eventually be populated with the contents of the spreadsheet's rows */
-      const data = [];
+ var sf = "https://docs.google.com/spreadsheets/d/17JfxIWPJsNIisQFXu_lJvn_Vjb4b2oG3EeJ_3dZMk3Q/gviz/tq?tqx=out:json";
+$.ajax({url: sf, type: 'GET', dataType: 'text'})
+.done(function(data) {
+  const r = data.match(/google\.visualization\.Query\.setResponse\(([\s\S\w]+)\)/);
+
+  if (r && r.length == 2) {
+    const obj = JSON.parse(r[1]);
+    const table = obj.table;
+    const header = table.cols.map(({label}) => label);
+    const rows = table.rows.map(({c}) => c);
       containerNo_booked = [];
-    const rows = json.feed.entry;
-
-    for(const row of rows) {
-      const formattedRow = {};
-
-      for(const key in row) {
-        if(key.startsWith("gsx$")) {
-
-          /* The actual row names from your spreadsheet
-           * are formatted like "gsx$title".
-           * Therefore, we need to find keys in this object
-           * that start with "gsx$", and then strip that
-           * out to get the actual row name
-           */
-
-          formattedRow[key.replace("gsx$", "")] = row[key].$t;
-
-        }
+      for(const row of rows){
+          if(row[16] != null){
+              containerNo_booked.push(row[0].v);
+          }
       }
 
-      data.push(formattedRow);
-    }
+ // console.log(containerNo_booked );
 
-      var tieude = Object.getOwnPropertyNames(data[0])[0];
-      var isbooked = Object.getOwnPropertyNames(data[0])[16];
-      var m = 0;
-    for(let n =0; n<data.length; n++){
-        if (data[n][isbooked] != "") {
-            containerNo_booked[m] = data[n][tieude];
-            m++;
-        }
-    }
-    console.log(containerNo_booked);
-  })
-})();
+  }
+})
+.fail((e) => console.log(e.status));
+
+
 }, 15000);
 
 var container_color = [];
 var colorOfContainer = [];
 const interval_getlistCustomColor = setInterval(function () {
-    (async () => {
-        fetch("https://spreadsheets.google.com/feeds/list/1yzxWwqqOsPINsbWLCMOZYt2cGNddXnfaqgqZqk4TgkE/1/public/values?alt=json")
-            .then(res => res.json())
-            .then(json => {
-                /* this array will eventually be populated with the contents of the spreadsheet's rows */
-                const data = [];
-                container_color = [];
-                colorOfContainer = [];
-                const rows = json.feed.entry;
+    var sf = "https://docs.google.com/spreadsheets/d/1yzxWwqqOsPINsbWLCMOZYt2cGNddXnfaqgqZqk4TgkE/gviz/tq?tqx=out:json";
+$.ajax({url: sf, type: 'GET', dataType: 'text'})
+.done(function(data) {
+  const r = data.match(/google\.visualization\.Query\.setResponse\(([\s\S\w]+)\)/);
 
-                for (const row of rows) {
-                    const formattedRow = {};
+  if (r && r.length == 2) {
+    const obj = JSON.parse(r[1]);
+    const table = obj.table;
+    //console.log(table );
+    const header = table.cols.map(({label}) => label);
 
-                    for (const key in row) {
-                        if (key.startsWith("gsx$")) {
+    const rows = table.rows.map(({c}) => c);
+//console.log(rows );
+  //const socont = 	rows.map(({v}) => v[2]);
+    //console.log(socont );
 
-                            /* The actual row names from your spreadsheet
-                             * are formatted like "gsx$title".
-                             * Therefore, we need to find keys in this object
-                             * that start with "gsx$", and then strip that
-                             * out to get the actual row name
-                             */
 
-                            formattedRow[key.replace("gsx$", "")] = row[key].$t;
+   // console.log(table.rows[0].c[0].v);
+    container_color = [];
+    colorOfContainer = [];
+      for(const row of rows){
+          //console.log(row[0].v);
+          if(row[2] == null){
+              container_color.push("");
+          } else{
+              container_color.push(row[2].v);
+}
 
-                        }
-                    }
+          if(row[0] == null){
+              colorOfContainer.push("");
+          } else{
+              colorOfContainer.push(row[0].v);
+          }
 
-                    data.push(formattedRow);
-                }
 
-                var colorHex = Object.getOwnPropertyNames(data[0])[0];
-                var containerUserCustumColor = Object.getOwnPropertyNames(data[0])[2];
-                for (let n = 0; n < data.length; n++) {
-                    container_color[n] = data[n][containerUserCustumColor];
-                    colorOfContainer[n] = data[n][colorHex];
-                }
-                console.log(colorOfContainer);
-                console.log(container_color);
-            })
-    })();
+}
+  //console.log(container_color );
+  //console.log(colorOfContainer );
+  }
+})
+.fail((e) => console.log(e.status));
+
 }, 15000);
 
 
@@ -143,7 +126,7 @@ const interval = setInterval(function() {
 	                            document.getElementsByClassName("cell-yard cell-container")[i].style.backgroundColor = "green";
 	                            break;
 	                        case 2:
-	                            document.getElementsByClassName("cell-yard cell-container")[i].style.backgroundColor = "#fce5cd";
+	                            document.getElementsByClassName("cell-yard cell-container")[i].style.backgroundColor = "#ff00ea";
 	                            break;
 	                        case 3:
 	                            document.getElementsByClassName("cell-yard cell-container")[i].style.backgroundColor = "red";
@@ -167,7 +150,7 @@ const interval = setInterval(function() {
                 // Nếu người dùng tô màu trắng thì không tô lại, để màu mặc định của TTOS
                 document.getElementsByClassName("cell-yard cell-container")[i].style.backgroundColor = colorOfContainer[container_color.indexOf(containerNo)];
             }
-            
+
         }
 
     }
