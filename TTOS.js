@@ -10,22 +10,24 @@
 // ==/UserScript==
 
 
- 'use strict';
+'use strict';
 var containerNo_booked = [];
+var containerNo_store = [];
+var currentLocation = [];
 const interval_getlistBooked = setInterval(async function() {
     let rows = await fetch("https://sheets.googleapis.com/v4/spreadsheets/17JfxIWPJsNIisQFXu_lJvn_Vjb4b2oG3EeJ_3dZMk3Q/values/TonBai?key=AIzaSyCTp0GCp6TyvlU0VGfXbjaiLV-N6LECK2Y")
     .then(r => r.json())
     containerNo_booked = [];
+    containerNo_store = [];
+    currentLocation = [];
     for(const row of rows.values){
 
+        containerNo_store.push(row[0]);
+        currentLocation.push(row[2]);
         if(row[16] != ""){
             containerNo_booked.push(row[0]);
         }
       }
-      console.log(containerNo_booked );
-
-
-
 }
 , 30000);
 
@@ -51,17 +53,61 @@ const interval_getlistCustomColor =  setInterval(async function () {
               colorOfContainer.push(row[0]);
           }
         }
-  console.log(container_color );
-  console.log(colorOfContainer );
   }, 30000);
 
+  function insertAfter(referenceNode, newNode) {
+    referenceNode.parentNode.insertBefore(newNode, referenceNode.nextSibling);
+  }
+  
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
 
+  var searchCont = document.createElement("BUTTON");
+  searchCont.setAttribute("id", "searchCont");
+  searchCont.innerHTML = "Tìm cont";
+  searchCont.setAttribute("class", "btn btn-primary");
+  
+  var oldElement = document.getElementById("txt-search-cont");
+  insertAfter(oldElement,searchCont);
+  
+  searchCont.onclick = function(){
+      let textOfSearch = document.getElementById("txt-search-cont").value;
+      
+      let resultSearch = [];
+      for(let i=0; i < containerNo_store.length; i++){
+          
+          if(containerNo_store[i].substr(containerNo_store[i].length - textOfSearch.length) == textOfSearch){
+              resultSearch.push(currentLocation[i]);
+          }
+      }
+      if(resultSearch.length == 0 ){
+          searchCont.innerHTML = "Không tìm thấy";
+          sleep(2000).then(() => {
+              searchCont.innerHTML = "Tìm cont";
+          });
+      }
+      else if(resultSearch.length > 1){
+          searchCont.innerHTML = "Nhập chi tiết hơn";
+          sleep(2000).then(() => {
+              searchCont.innerHTML = "Tìm cont";
+          });
+      }else{
+          searchCont.innerHTML = resultSearch[0];
+          sleep(15000).then(() => {
+              searchCont.innerHTML = "Tìm cont";
+          });
+  
+      }
+  
+  }
 
 
 
 const interval = setInterval(function() {
 
     var listContAtBay, listMethodAtList, listContAtList, containerNo;
+    document.getElementById("txt-search-cont").setAttribute("type", "number"); // Gửi lệnh này ở đây để set Type của textbox tìm kiếm là số
 
 
     listContAtBay = document.getElementsByClassName("cell-yard cell-container");
