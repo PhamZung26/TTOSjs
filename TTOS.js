@@ -12,79 +12,48 @@
 
  'use strict';
 var containerNo_booked = [];
-const interval_getlistBooked = setInterval(function() {
- var sf = "https://docs.google.com/spreadsheets/d/17JfxIWPJsNIisQFXu_lJvn_Vjb4b2oG3EeJ_3dZMk3Q/gviz/tq?tqx=out:json";
-$.ajax({url: sf, type: 'GET', dataType: 'text'})
-.done(function(data) {
-  const r = data.match(/google\.visualization\.Query\.setResponse\(([\s\S\w]+)\)/);
+const interval_getlistBooked = setInterval(async function() {
+    let rows = await fetch("https://sheets.googleapis.com/v4/spreadsheets/17JfxIWPJsNIisQFXu_lJvn_Vjb4b2oG3EeJ_3dZMk3Q/values/TonBai?key=AIzaSyCTp0GCp6TyvlU0VGfXbjaiLV-N6LECK2Y")
+    .then(r => r.json())
+    containerNo_booked = [];
+    for(const row of rows.values){
 
-  if (r && r.length == 2) {
-    const obj = JSON.parse(r[1]);
-    const table = obj.table;
-    const header = table.cols.map(({label}) => label);
-    const rows = table.rows.map(({c}) => c);
-      containerNo_booked = [];
-      for(const row of rows){
-          if(row[16] != null){
-              containerNo_booked.push(row[0].v);
-          }
+        if(row[16] != ""){
+            containerNo_booked.push(row[0]);
+        }
       }
-
- // console.log(containerNo_booked );
-
-  }
-})
-.fail((e) => console.log(e.status));
+      console.log(containerNo_booked );
 
 
-}, 15000);
+
+}
+, 30000);
 
 var container_color = [];
 var colorOfContainer = [];
-const interval_getlistCustomColor = setInterval(function () {
-    var sf = "https://docs.google.com/spreadsheets/d/1yzxWwqqOsPINsbWLCMOZYt2cGNddXnfaqgqZqk4TgkE/gviz/tq?tqx=out:json";
-$.ajax({url: sf, type: 'GET', dataType: 'text'})
-.done(function(data) {
-  const r = data.match(/google\.visualization\.Query\.setResponse\(([\s\S\w]+)\)/);
+const interval_getlistCustomColor =  setInterval(async function () {
 
-  if (r && r.length == 2) {
-    const obj = JSON.parse(r[1]);
-    const table = obj.table;
-    //console.log(table );
-    const header = table.cols.map(({label}) => label);
-
-    const rows = table.rows.map(({c}) => c);
-//console.log(rows );
-  //const socont = 	rows.map(({v}) => v[2]);
-    //console.log(socont );
-
-
-   // console.log(table.rows[0].c[0].v);
+    let rows = await fetch("https://sheets.googleapis.com/v4/spreadsheets/1yzxWwqqOsPINsbWLCMOZYt2cGNddXnfaqgqZqk4TgkE/values/XuatTau?key=AIzaSyCTp0GCp6TyvlU0VGfXbjaiLV-N6LECK2Y")
+    .then(r => r.json())
     container_color = [];
     colorOfContainer = [];
-      for(const row of rows){
-          //console.log(row[0].v);
+      for(const row of rows.values){
+
           if(row[2] == null){
               container_color.push("");
           } else{
-              container_color.push(row[2].v);
-}
+              container_color.push(row[2]);
+        }
 
           if(row[0] == null){
               colorOfContainer.push("");
           } else{
-              colorOfContainer.push(row[0].v);
+              colorOfContainer.push(row[0]);
           }
-
-
-}
-  //console.log(container_color );
-  //console.log(colorOfContainer );
-  }
-})
-.fail((e) => console.log(e.status));
-
-}, 15000);
+        }
+  console.log(container_color );
+  console.log(colorOfContainer );
+  }, 30000);
 
 
 
@@ -107,7 +76,7 @@ const interval = setInterval(function() {
         listContAtList = document.getElementsByClassName("chat-list-item-header");
         for(let j=0; j<listContAtList.length; j += 1){
             if (containerNo == listContAtList[j].children[0].children[0].children[0].innerHTML) {
-                console.log(containerNo);
+                //console.log(containerNo);
                 for(let k=0; k<5; k +=1){
                     if(listMethodAtList[j].children[k].className == ""){
                         //Neu Class của method at list là "" thì đó là index của phương án đó
