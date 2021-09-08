@@ -22,9 +22,9 @@ interval_getlistBooked.start(async function() {
     .then( r => r.json())
     if (containerNo_store.length > 1){
     	interval_getlistBooked.set_interval(900000);
-    	// nếu có dữ liệu rồi thì 15 phút mới lấy dữ liệu 1 lần	
+    	// nếu có dữ liệu rồi thì 15 phút mới lấy dữ liệu 1 lần
     }else{
-    	interval_getlistBooked.set_interval(1000);	
+    	interval_getlistBooked.set_interval(1000);
     }
     containerNo_booked = [];
     containerNo_store = [];
@@ -58,9 +58,9 @@ interval_getlistCustomColor.start(
 
     if (container_color.length > 1){
     	interval_getlistCustomColor.set_interval(15000);
-    	// nếu có dữ liệu rồi thì 15 s mới lấy dữ liệu 1 lần	
+    	// nếu có dữ liệu rồi thì 15 s mới lấy dữ liệu 1 lần
     }else{
-    	interval_getlistCustomColor.set_interval(1000);	
+    	interval_getlistCustomColor.set_interval(1000);
     }
     container_color = [];
     colorOfContainer = [];
@@ -85,7 +85,7 @@ interval_getlistCustomColor.start(
   function insertAfter(referenceNode, newNode) {
     referenceNode.parentNode.insertBefore(newNode, referenceNode.nextSibling);
   }
-  
+
   function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
@@ -126,16 +126,16 @@ return timer;
   searchCont.setAttribute("id", "searchCont");
   searchCont.innerHTML = "Tìm cont";
   searchCont.setAttribute("class", "btn btn-primary");
-  
+
   var oldElement = document.getElementById("txt-search-cont");
   insertAfter(oldElement,searchCont);
-  
+
   searchCont.onclick = function(){
       let textOfSearch = document.getElementById("txt-search-cont").value;
-      
+
       let resultSearch = [];
       for(let i=0; i < containerNo_store.length; i++){
-          
+
           if(containerNo_store[i].substr(containerNo_store[i].length - textOfSearch.length) == textOfSearch){
               resultSearch.push(currentLocation[i]);
           }
@@ -156,9 +156,9 @@ return timer;
           sleep(15000).then(() => {
               searchCont.innerHTML = "Tìm cont";
           });
-  
+
       }
-  
+
   }
 
 
@@ -166,6 +166,13 @@ return timer;
 const interval = setInterval(function() {
 
     var listContAtBay, listMethodAtList, listContAtList, containerNo;
+    var listContForBreakLine = document.getElementsByClassName("container-no");
+    for (let i=0; i<listContForBreakLine.length; i++){
+        if(listContForBreakLine[i].innerHTML.length == 11){
+             listContForBreakLine[i].innerHTML = "<div style='text-align: left; font-size: 15px;'>" + listContForBreakLine[i].innerHTML.substring(0,4) + "</div>" +"<br>" + "<div style='text-align: right; font-size: 15px;'>" + listContForBreakLine[i].innerHTML.substring(4,11) + "</div>";
+        }
+    }
+
 
 
 
@@ -173,7 +180,7 @@ const interval = setInterval(function() {
 
 
     for (let i = 0; i < listContAtBay.length; i += 1) {
-        containerNo = listContAtBay[i].children[1].innerHTML;
+        containerNo = listContAtBay[i].getAttribute("item-no");
         if(containerNo_booked.includes(containerNo)){
             document.getElementsByClassName("cell-yard cell-container")[i].style.backgroundColor = "#ffcc99";
         }
