@@ -169,7 +169,7 @@ const interval = setInterval(function() {
     var listContForBreakLine = document.getElementsByClassName("container-no");
     for (let i=0; i<listContForBreakLine.length; i++){
         if(listContForBreakLine[i].innerHTML.length == 11){
-             listContForBreakLine[i].innerHTML = "<div style='text-align: left; font-size: 15px;'>" + listContForBreakLine[i].innerHTML.substring(0,4) + "</div>" +"<br>" + "<div style='text-align: right; font-size: 15px;'>" + listContForBreakLine[i].innerHTML.substring(4,11) + "</div>";
+             listContForBreakLine[i].innerHTML = "<div style='text-align: left'>" + listContForBreakLine[i].innerHTML.substring(0,4) + "</div>" +"<br>" + "<div style='text-align: right'>" + listContForBreakLine[i].innerHTML.substring(4,11) + "</div>";
         }
     }
 
