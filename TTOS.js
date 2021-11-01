@@ -16,6 +16,8 @@ document.getElementById("search-workinstruction").setAttribute("type", "number")
 var containerNo_booked = [];
 var containerNo_store = [];
 var currentLocation = [];
+var pod = [];
+var vessel = [];
 const interval_getlistBooked = new timer();
 interval_getlistBooked.start(async function() {
     let rows = await fetch("https://sheets.googleapis.com/v4/spreadsheets/17JfxIWPJsNIisQFXu_lJvn_Vjb4b2oG3EeJ_3dZMk3Q/values/TonBai?key=AIzaSyCTp0GCp6TyvlU0VGfXbjaiLV-N6LECK2Y")
@@ -29,16 +31,22 @@ interval_getlistBooked.start(async function() {
     containerNo_booked = [];
     containerNo_store = [];
     currentLocation = [];
+    pod = [];
+    vessel = [];
     for(const row of rows.values){
 
         containerNo_store.push(row[0]);
         currentLocation.push(row[2]);
+        pod.push(row[30]);
+
+        vessel.push(row[22]);
+
         if(row[16] != ""){
             containerNo_booked.push(row[0]);
         }
       }
-      console.log(new Date());
-      console.log(containerNo_store);
+      //console.log(vessel);
+      //console.log(pod);
 
 }
 , 1000, true);
@@ -166,21 +174,47 @@ return timer;
 const interval = setInterval(function() {
 
     var listContAtBay, listMethodAtList, listContAtList, containerNo;
+    listContAtBay = document.getElementsByClassName("cell-yard cell-container");
     var listContForBreakLine = document.getElementsByClassName("container-no");
+
     for (let i=0; i<listContForBreakLine.length; i++){
         if(listContForBreakLine[i].innerHTML.length == 11){
              listContForBreakLine[i].innerHTML = "<div style='text-align: left'>" + listContForBreakLine[i].innerHTML.substring(0,4) + "</div>" +"<br>" + "<div style='text-align: right'>" + listContForBreakLine[i].innerHTML.substring(4,11) + "</div>";
-        }
+
+            }
     }
 
 
 
 
-    listContAtBay = document.getElementsByClassName("cell-yard cell-container");
+
 
 
     for (let i = 0; i < listContAtBay.length; i += 1) {
         containerNo = listContAtBay[i].getAttribute("item-no");
+        let podOfCont = "";
+        let vesselOfCont = "";
+        // Get index of ContainerNo in store
+        let indexOfCont = containerNo_store.indexOf(containerNo);
+        if(indexOfCont != -1){
+            podOfCont = pod[indexOfCont].substring(2,5);
+            console.log(pod[indexOfCont]);
+            vesselOfCont = vessel[indexOfCont];
+        }
+        console.log(indexOfCont);
+        if(typeof(listContAtBay[i].children[2]) != "undefined"){
+            if(!listContAtBay[i].children[2].innerHTML.includes(podOfCont)){
+                listContAtBay[i].children[2].innerHTML = listContAtBay[i].children[2].innerHTML + " - " + podOfCont;
+            }
+
+            if(!listContAtBay[i].innerHTML.includes(vesselOfCont)){
+                listContAtBay[i].innerHTML = listContAtBay[i].innerHTML + "<span>" + vesselOfCont + "</span>";
+            }
+
+        }
+
+
+
         if(containerNo_booked.includes(containerNo)){
             document.getElementsByClassName("cell-yard cell-container")[i].style.backgroundColor = "#ffcc99";
         }
