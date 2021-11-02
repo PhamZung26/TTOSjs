@@ -204,11 +204,12 @@ const interval = setInterval(function() {
         console.log(indexOfCont);
         if(typeof(listContAtBay[i].children[2]) != "undefined"){
             if(!listContAtBay[i].children[2].innerHTML.includes(podOfCont)){
+                listContAtBay[i].children[2].style.fontSize = "10px";
                 listContAtBay[i].children[2].innerHTML = listContAtBay[i].children[2].innerHTML + " - " + podOfCont;
             }
 
             if(!listContAtBay[i].innerHTML.includes(vesselOfCont)){
-                listContAtBay[i].innerHTML = listContAtBay[i].innerHTML + "<span style='font-size:8px;'>" + vesselOfCont + "</span>";
+                listContAtBay[i].innerHTML = listContAtBay[i].innerHTML + "<span style='font-size:10px;'>" + vesselOfCont + "</span>";
             }
 
         }
