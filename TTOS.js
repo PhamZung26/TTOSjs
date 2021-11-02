@@ -208,7 +208,7 @@ const interval = setInterval(function() {
             }
 
             if(!listContAtBay[i].innerHTML.includes(vesselOfCont)){
-                listContAtBay[i].innerHTML = listContAtBay[i].innerHTML + "<span style='font-size:10px;'>" + vesselOfCont + "</span>";
+                listContAtBay[i].innerHTML = listContAtBay[i].innerHTML + "<span style='font-size:8px;'>" + vesselOfCont + "</span>";
             }
 
         }
