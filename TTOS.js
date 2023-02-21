@@ -41,7 +41,7 @@ interval_getlistBooked.start(async function() {
 
         vessel.push(row[21]);
 
-        if(row[11] != ""){
+        if(row[18] != ""){
             containerNo_booked.push(row[0]);
         }
       }
