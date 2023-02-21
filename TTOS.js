@@ -37,11 +37,11 @@ interval_getlistBooked.start(async function() {
 
         containerNo_store.push(row[0]);
         currentLocation.push(row[2]);
-        pod.push(row[30]);
+        pod.push(row[34]);
 
-        vessel.push(row[22]);
+        vessel.push(row[21]);
 
-        if(row[16] != ""){
+        if(row[11] != ""){
             containerNo_booked.push(row[0]);
         }
       }
