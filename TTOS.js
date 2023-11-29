@@ -271,3 +271,66 @@ const interval = setInterval(function() {
 
     }
  }, 3000);
+
+var thongbao = document.createElement("span");
+ thongbao.setAttribute("id","thongbao");
+ var div = document.createElement("div");
+ div.style.position = 'relative';
+ div.style.display = 'block';
+ var oldElement1 = document.getElementById("bat-selected");
+ var chatlist = document.getElementById("wi-selected-id");
+ document.getElementById("wi-selected-panel").style.height = '150px'
+ //oldElement1.parentNode.parentNode.appendChild(div);
+ //div.appendChild(thongbao);
+ insertAfter(oldElement1,thongbao);
+ thongbao.innerHTML = "";
+ thongbao.style.marginInlineStart = "10px";
+ thongbao.style.fontSize = "1.6rem";
+ thongbao.style.color = 'white';
+
+ const CheckClean = setInterval(function(){
+    var containerNo = document.getElementById("item-no-selected").innerHTML;
+    var iso = document.getElementById("item-iso-selected").innerHTML;
+    var currentLocation = document.getElementById("currentloc-selected").innerHTML;
+    var plan = document.getElementById("planloc-selected").innerHTML;
+
+
+
+    if(iso.includes("E") && plan.includes("Y")){
+        var myHeaders = new Headers();
+        myHeaders.append("Cookie", ".AspNetCore.Antiforgery.KK6xcoXdd8M=CfDJ8OsZ6q8EGv1Jg7DR69NjOiKedywNvHi1hVxTsz4P3_Uz7PTPgtKUSZJycxKFufe08AA9ZN70H4kmc9RcVzosFnVssGBZ8ukkvAuCqdQINtXYjymdJ-dHyWkmOV7RsgCKDUklQTbFts5vnYU_MkJ2OcI");
+
+        var requestOptions = {
+          method: 'GET',
+          headers: myHeaders,
+          redirect: 'follow'
+        };
+        fetch("https://tc128.hopto.org/api/container/isNeedClean?ContainerNo="+containerNo, requestOptions)
+          .then(response => response.text())
+          .then(result => {
+            if(result == "true"){
+                fetch("https://tc128.hopto.org/api/container/isCleaned?ContainerNo="+containerNo, requestOptions).then(response2 => response2.text()).then(result2 => {
+                    if(result2 == "true"){
+                        thongbao.innerHTML = containerNo + " đã VS";
+                        thongbao.style.backgroundColor = "green";
+                    }else{
+                        thongbao.innerHTML = containerNo+ " chưa VS";
+                        thongbao.style.backgroundColor = "red";
+                    }
+                })
+            }else{
+                thongbao.innerHTML = containerNo + " không VS";
+                thongbao.style.backgroundColor = "blue";
+            }
+
+          }
+
+          )
+          .catch(error => console.log('error', error));
+
+    }else{
+        thongbao.innerHTML = "";
+        thongbao.style.backgroundColor = "white";
+    }
+
+   },3000);
