@@ -288,6 +288,28 @@ var thongbao = document.createElement("span");
  thongbao.style.fontSize = "1.6rem";
  thongbao.style.color = 'white';
 
+// Khởi tạo biến danh sách
+var danhSachTinhtrangVSCont = [];
+
+// Hàm để thêm thành viên mới
+function themThanhVien(moiThanhVien) {
+    // Kiểm tra xem có đạt được giới hạn 100 thành viên chưa
+    if (danhSachTinhtrangVSCont.length >= 100) {
+        // Nếu đạt giới hạn, xóa thành viên đầu tiên
+        danhSachTinhtrangVSCont.shift();
+    }
+
+    // Thêm thành viên mới vào cuối danh sách
+    danhSachTinhtrangVSCont.push(moiThanhVien);
+}
+
+function kiemTraThanhVien(tenThanhVien) {
+    // Sử dụng phương thức indexOf để kiểm tra xem thành viên có trong danh sách hay không
+    // Nếu indexOf trả về -1, có nghĩa là thành viên không có trong danh sách
+    // Ngược lại, thành viên có trong danh sách
+    return danhSachTinhtrangVSCont.indexOf(tenThanhVien) !== -1;
+}
+
  const CheckClean = setInterval(function(){
     var containerNo = document.getElementById("item-no-selected").innerHTML;
     var iso = document.getElementById("item-iso-selected").innerHTML;
@@ -297,15 +319,28 @@ var thongbao = document.createElement("span");
 
 
     if(iso.includes("E") && plan.includes("Y")){
-        var myHeaders = new Headers();
-        myHeaders.append("Cookie", ".AspNetCore.Antiforgery.KK6xcoXdd8M=CfDJ8OsZ6q8EGv1Jg7DR69NjOiKedywNvHi1hVxTsz4P3_Uz7PTPgtKUSZJycxKFufe08AA9ZN70H4kmc9RcVzosFnVssGBZ8ukkvAuCqdQINtXYjymdJ-dHyWkmOV7RsgCKDUklQTbFts5vnYU_MkJ2OcI");
-
-        var requestOptions = {
-          method: 'GET',
-          headers: myHeaders,
-          redirect: 'follow'
-        };
-        fetch("https://tc128.hopto.org/api/container/isNeedClean?ContainerNo="+containerNo, requestOptions)
+        if(kiemTraThanhVien(containerNo + " đã VS")){
+            // Nếu có thông tin cont đã vệ sinh thì không gửi request nữa
+            thongbao.innerHTML = containerNo + " đã VS";
+            thongbao.style.backgroundColor = "green";
+            console.log("Không gửi request");
+        }else if(kiemTraThanhVien(containerNo + " không VS")){
+            // Nếu có thông tin cont chưa vệ sinh thì không gửi request nữa
+            thongbao.innerHTML = containerNo + " không VS";
+            thongbao.style.backgroundColor = "blue";
+            console.log("Không gửi request");
+        }
+        else{
+            var myHeaders = new Headers();
+            myHeaders.append("Cookie", ".AspNetCore.Antiforgery.KK6xcoXdd8M=CfDJ8OsZ6q8EGv1Jg7DR69NjOiKedywNvHi1hVxTsz4P3_Uz7PTPgtKUSZJycxKFufe08AA9ZN70H4kmc9RcVzosFnVssGBZ8ukkvAuCqdQINtXYjymdJ-dHyWkmOV7RsgCKDUklQTbFts5vnYU_MkJ2OcI");
+    
+            var requestOptions = {
+              method: 'GET',
+              headers: myHeaders,
+              redirect: 'follow'
+            };
+            console.log("Chuẩn bị gửi request");
+            fetch("https://tc128.hopto.org/api/container/isNeedClean?ContainerNo="+containerNo, requestOptions)
           .then(response => response.text())
           .then(result => {
             if(result == "true"){
@@ -313,6 +348,11 @@ var thongbao = document.createElement("span");
                     if(result2 == "true"){
                         thongbao.innerHTML = containerNo + " đã VS";
                         thongbao.style.backgroundColor = "green";
+                        if(!kiemTraThanhVien(containerNo + " đã VS")){
+                            //Kiểm tra nếu chưa có thì mới thêm
+                            themThanhVien(containerNo + " đã VS");
+                            console.log(danhSachTinhtrangVSCont);
+                        }
                     }else{
                         thongbao.innerHTML = containerNo+ " chưa VS";
                         thongbao.style.backgroundColor = "red";
@@ -321,12 +361,20 @@ var thongbao = document.createElement("span");
             }else{
                 thongbao.innerHTML = containerNo + " không VS";
                 thongbao.style.backgroundColor = "blue";
+                if(!kiemTraThanhVien(containerNo + " không VS")){
+                    //Kiểm tra nếu chưa có thì mới thêm
+                    themThanhVien(containerNo + " không VS");
+                    console.log(danhSachTinhtrangVSCont);
+                }
             }
 
           }
 
           )
           .catch(error => console.log('error', error));
+        }
+
+        
 
     }else{
         thongbao.innerHTML = "";
