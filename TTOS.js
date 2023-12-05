@@ -220,44 +220,28 @@ const interval = setInterval(function() {
             document.getElementsByClassName("cell-yard cell-container")[i].style.backgroundColor = "#ffcc99";
         }
         listMethodAtList = document.getElementsByClassName("chat-list-item-photo");
-        listContAtList = document.getElementsByClassName("chat-list-item-header");
+        listContAtList = document.getElementsByClassName("wi-item workinstruction");
         for(let j=0; j<listContAtList.length; j += 1){
-            if (containerNo == listContAtList[j].children[0].children[0].children[0].innerHTML) {
-                //console.log(containerNo);
-                for(let k=0; k<5; k +=1){
-                    if(listMethodAtList[j].children[k].className == ""){
-                        //Neu Class của method at list là "" thì đó là index của phương án đó
-                        // k = 0 là lệnh qua cổng
-                        // k = 1 là lệnh yard đảo chuyển
-                        // k = 2 là lệnh xuất tàu
-                        // k = 3 là lệnh nhập tầu
-                        // k = 4 là lệnh depot
-                        //console.log(containerNo);
-                        //console.log(k);
-	                    switch(k) {
-	                        case 0:
-	                            document.getElementsByClassName("cell-yard cell-container")[i].style.backgroundColor = "yellow";
-	                            break;
-	                        case 1:
-	                            document.getElementsByClassName("cell-yard cell-container")[i].style.backgroundColor = "green";
-	                            break;
-	                        case 2:
-	                            document.getElementsByClassName("cell-yard cell-container")[i].style.backgroundColor = "#ff00ea";
-	                            break;
-	                        case 3:
-	                            document.getElementsByClassName("cell-yard cell-container")[i].style.backgroundColor = "red";
-	                            break;
-	                        case 4:
-	                            document.getElementsByClassName("cell-yard cell-container")[i].style.backgroundColor = "lightblue";
-	                            break;
-	                        default:
-	                            document.getElementsByClassName("cell-yard cell-container")[i].style.backgroundColor = "black";
-	                    }
-                   break;
+            if (containerNo == listContAtList[j].getAttribute("item-no")) {
+                console.log(containerNo);
+                var action = listContAtList[j].getAttribute("action");
+                var wqtype = listContAtList[j].getAttribute("wqtype");
+                if(wqtype == "GATE"){
+                    // Lệnh qua cổng
+                    document.getElementsByClassName("cell-yard cell-container")[i].style.backgroundColor = "yellow";
+                }else if(wqtype == "YARDCONSOL"){
+                    // Lệnh đảo chuyển
+                    document.getElementsByClassName("cell-yard cell-container")[i].style.backgroundColor = "green";
+                }else if(wqtype == "VESSEL"){
+                    if(action == "PICKUP"){
+                        // Lệnh xuất tàu
+                        document.getElementsByClassName("cell-yard cell-container")[i].style.backgroundColor = "#ff00ea";
+                    }else{
+                        // Lệnh nhập tàu
+                        document.getElementsByClassName("cell-yard cell-container")[i].style.backgroundColor = "red";
                     }
-
-
                 }
+   
             }
         }
         if (container_color.indexOf(containerNo) != -1) {
