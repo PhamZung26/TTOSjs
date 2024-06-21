@@ -324,11 +324,11 @@ function kiemTraThanhVien(tenThanhVien) {
               redirect: 'follow'
             };
             console.log("Chuẩn bị gửi request");
-            fetch("https://tc128.hopto.org/api/container/isNeedClean?ContainerNo="+containerNo, requestOptions)
+            fetch("https://tc128hp.hopto.org/api/container/isNeedClean?ContainerNo="+containerNo, requestOptions)
           .then(response => response.text())
           .then(result => {
             if(result == "true"){
-                fetch("https://tc128.hopto.org/api/container/isCleaned?ContainerNo="+containerNo, requestOptions).then(response2 => response2.text()).then(result2 => {
+                fetch("https://tc128hp.hopto.org/api/container/isCleaned?ContainerNo="+containerNo, requestOptions).then(response2 => response2.text()).then(result2 => {
                     if(result2 == "true"){
                         thongbao.innerHTML = containerNo + " đã VS";
                         thongbao.style.backgroundColor = "green";
