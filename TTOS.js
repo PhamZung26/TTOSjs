@@ -241,7 +241,7 @@ const interval = setInterval(function() {
                         document.getElementsByClassName("cell-yard cell-container")[i].style.backgroundColor = "red";
                     }
                 }
-   
+
             }
         }
         if (container_color.indexOf(containerNo) != -1) {
@@ -272,97 +272,169 @@ var thongbao = document.createElement("span");
  thongbao.style.fontSize = "1.6rem";
  thongbao.style.color = 'white';
 
-// Khởi tạo biến danh sách
-var danhSachTinhtrangVSCont = [];
+// Dùng Set thay vì mảng để tra cứu nhanh hơn O(1)
+const danhSachTinhtrangVSCont = new Set();
 
-// Hàm để thêm thành viên mới
+/**
+ * 🧩 Thêm một container mới vào danh sách (tối đa 100 phần tử)
+ * @param {string} moiThanhVien - Chuỗi mô tả tình trạng (vd: "CAIU9981692 đã VS")
+ */
 function themThanhVien(moiThanhVien) {
-    // Kiểm tra xem có đạt được giới hạn 100 thành viên chưa
-    if (danhSachTinhtrangVSCont.length >= 100) {
-        // Nếu đạt giới hạn, xóa thành viên đầu tiên
-        danhSachTinhtrangVSCont.shift();
+    // Nếu đã tồn tại thì bỏ qua
+    if (danhSachTinhtrangVSCont.has(moiThanhVien)) return;
+
+    // Nếu vượt quá 100 phần tử → xóa phần tử cũ nhất
+    if (danhSachTinhtrangVSCont.size >= 100) {
+        const firstItem = danhSachTinhtrangVSCont.values().next().value;
+        danhSachTinhtrangVSCont.delete(firstItem);
     }
 
-    // Thêm thành viên mới vào cuối danh sách
-    danhSachTinhtrangVSCont.push(moiThanhVien);
+    // Thêm mới
+    danhSachTinhtrangVSCont.add(moiThanhVien);
+    console.log(`🟢 Thêm: ${moiThanhVien} (${danhSachTinhtrangVSCont.size}/100)`);
 }
 
+/**
+ * 🔍 Kiểm tra xem container đã có trong danh sách chưa
+ * @param {string} tenThanhVien - Chuỗi cần kiểm tra
+ * @returns {boolean} - true nếu đã tồn tại
+ */
 function kiemTraThanhVien(tenThanhVien) {
-    // Sử dụng phương thức indexOf để kiểm tra xem thành viên có trong danh sách hay không
-    // Nếu indexOf trả về -1, có nghĩa là thành viên không có trong danh sách
-    // Ngược lại, thành viên có trong danh sách
-    return danhSachTinhtrangVSCont.indexOf(tenThanhVien) !== -1;
+    return danhSachTinhtrangVSCont.has(tenThanhVien);
 }
 
- const CheckClean = setInterval(function(){
-    var containerNo = document.getElementById("item-no-selected").innerHTML;
-    var iso = document.getElementById("item-iso-selected").innerHTML;
-    var currentLocation = document.getElementById("currentloc-selected").innerHTML;
-    var plan = document.getElementById("planloc-selected").innerHTML;
 
-
-
-    if(iso.includes("E") && plan.includes("Y")){
-        if(kiemTraThanhVien(containerNo + " đã VS")){
-            // Nếu có thông tin cont đã vệ sinh thì không gửi request nữa
-            thongbao.innerHTML = containerNo + " đã VS";
-            thongbao.style.backgroundColor = "green";
-            console.log("Không gửi request");
-        }else if(kiemTraThanhVien(containerNo + " không VS")){
-            // Nếu có thông tin cont chưa vệ sinh thì không gửi request nữa
-            thongbao.innerHTML = containerNo + " không VS";
-            thongbao.style.backgroundColor = "blue";
-            console.log("Không gửi request");
-        }
-        else{
+ const CheckClean = setInterval(async function () {
+    const containerNo = document.getElementById("item-no-selected").innerHTML.trim();
+    const iso = document.getElementById("item-iso-selected").innerHTML.trim();
+    const plan = document.getElementById("planloc-selected").innerHTML.trim();
+    const thongbao = document.getElementById("thongbao");
+    console.log("Số cont đang kiểm tra: ", containerNo);
+    // Chỉ xử lý khi điều kiện phù hợp
+    if (iso.includes("E") && plan.includes("Y")) {
+        try {
+            console.log("Gửi request đến API mới...");
             var myHeaders = new Headers();
             myHeaders.append("Cookie", ".AspNetCore.Antiforgery.KK6xcoXdd8M=CfDJ8OsZ6q8EGv1Jg7DR69NjOiKedywNvHi1hVxTsz4P3_Uz7PTPgtKUSZJycxKFufe08AA9ZN70H4kmc9RcVzosFnVssGBZ8ukkvAuCqdQINtXYjymdJ-dHyWkmOV7RsgCKDUklQTbFts5vnYU_MkJ2OcI");
-    
+
             var requestOptions = {
               method: 'GET',
               headers: myHeaders,
               redirect: 'follow'
             };
-            console.log("Chuẩn bị gửi request");
-            fetch("https://tc128hp.hopto.org/api/container/isNeedClean?ContainerNo="+containerNo, requestOptions)
-          .then(response => response.text())
-          .then(result => {
-            if(result == "true"){
-                fetch("https://tc128hp.hopto.org/api/container/isCleaned?ContainerNo="+containerNo, requestOptions).then(response2 => response2.text()).then(result2 => {
-                    if(result2 == "true"){
-                        thongbao.innerHTML = containerNo + " đã VS";
-                        thongbao.style.backgroundColor = "green";
-                        if(!kiemTraThanhVien(containerNo + " đã VS")){
-                            //Kiểm tra nếu chưa có thì mới thêm
-                            themThanhVien(containerNo + " đã VS");
-                            console.log(danhSachTinhtrangVSCont);
-                        }
-                    }else{
-                        thongbao.innerHTML = containerNo+ " chưa VS";
-                        thongbao.style.backgroundColor = "red";
-                    }
-                })
-            }else{
-                thongbao.innerHTML = containerNo + " không VS";
-                thongbao.style.backgroundColor = "blue";
-                if(!kiemTraThanhVien(containerNo + " không VS")){
-                    //Kiểm tra nếu chưa có thì mới thêm
+            const response = await fetch(`https://tc128hp.hopto.org/api/container/GetInFor?ContainerNo=${containerNo}`,requestOptions);
+            if (!response.ok) throw new Error("Không thể kết nối API");
+
+            const data = await response.json();
+            console.log("Kết quả:", data);
+
+            // Giải thích logic:
+            // - isDirty = true => container cần vệ sinh
+            // - isCleaned = true => container đã được vệ sinh
+            // - grade: có thể dùng để xác định chất lượng
+
+            if (data.isCleaned) {
+                hienThongBao(thongbao, containerNo, "đã VS", "success", data.grade);
+                if (!kiemTraThanhVien(containerNo + " đã VS")) {
+                    themThanhVien(containerNo + " đã VS");
+                }
+            }
+            else if (data.isDirty) {
+                hienThongBao(thongbao, containerNo, "chưa VS", "error", data.grade);
+            }
+            else {
+                hienThongBao(thongbao, containerNo, "không VS", "info", data.grade);
+                if (!kiemTraThanhVien(containerNo + " không VS")) {
                     themThanhVien(containerNo + " không VS");
-                    console.log(danhSachTinhtrangVSCont);
                 }
             }
 
-          }
-
-          )
-          .catch(error => console.log('error', error));
+        }
+        catch (error) {
+            console.error("Lỗi:", error);
+            hienThongBao(thongbao, containerNo, "Lỗi kết nối API", "warning");
         }
 
-        
-
-    }else{
+    } else {
         thongbao.innerHTML = "";
         thongbao.style.backgroundColor = "white";
     }
 
-   },3000);
+}, 3000);
+
+function hienThongBao(element, containerNo, text, type, grade = "") {
+    Object.assign(element.style, {
+        position: "relative",
+        zIndex: "9999",
+        padding: "10px 18px",
+        borderRadius: "12px",
+        fontWeight: "600",
+        color: "white",
+        display: "inline-block",
+        transition: "all 0.3s ease",
+        boxShadow: "0 3px 6px rgba(0,0,0,0.25)",
+        fontSize: "15px",
+        textAlign: "center",
+        minWidth: "220px",
+        marginTop: "6px",
+        marginBottom: "20px",
+        opacity: "0.97",
+        border: "1px solid rgba(255,255,255,0.2)",
+        backgroundClip: "padding-box",
+        overflow: "visible"
+    });
+
+    const gradePart = grade
+        ? `<span style="background:rgba(255,255,255,0.15);padding:2px 6px;border-radius:8px;margin-left:6px;">${grade}</span>`
+        : "";
+
+    const isDangerGrade = /^D/i.test(grade);
+
+    if (isDangerGrade) {
+        element.style.background = "linear-gradient(90deg, #ff5252, #b71c1c)";
+        element.style.animation = "blinkRed 1s infinite alternate";
+        element.innerHTML = `⚠️ ${containerNo} ${text} - Cảnh báo chất lượng ${gradePart}`;
+    } else {
+        element.style.animation = "none";
+        switch (type) {
+            case "success":
+                element.style.background = "linear-gradient(90deg, #43a047, #2e7d32)";
+                element.innerHTML = `✅ ${containerNo} đã VS ${gradePart}`;
+                break;
+            case "error":
+                element.style.background = "linear-gradient(90deg, #e53935, #c62828)";
+                element.innerHTML = `❌ ${containerNo} chưa VS ${gradePart}`;
+                break;
+            case "info":
+                element.style.background = "linear-gradient(90deg, #1e88e5, #1565c0)";
+                element.innerHTML = `ℹ️ ${containerNo} không VS ${gradePart}`;
+                break;
+            case "warning": // ⚠️ thêm kiểu cảnh báo lỗi API
+                element.style.background = "linear-gradient(90deg, #f9a825, #f57f17)";
+                element.style.animation = "blinkYellow 1.2s infinite alternate";
+                element.innerHTML = `⚠️ ${text}`;
+                break;
+            default:
+                element.innerHTML = "";
+                element.style.background = "transparent";
+                break;
+        }
+    }
+
+    // Thêm hiệu ứng cảnh báo nếu chưa có
+    if (!document.getElementById("blinkRedStyle")) {
+        const style = document.createElement("style");
+        style.id = "blinkRedStyle";
+        style.innerHTML = `
+            @keyframes blinkRed {
+                0% { box-shadow: 0 0 10px rgba(255,0,0,0.3); }
+                100% { box-shadow: 0 0 25px rgba(255,0,0,0.8); }
+            }
+            @keyframes blinkYellow {
+                0% { box-shadow: 0 0 8px rgba(255,193,7,0.4); }
+                100% { box-shadow: 0 0 20px rgba(255,193,7,0.9); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+}
