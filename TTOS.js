@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TTOS_highlight
 // @namespace    http://tampermonkey.net/
-// @version      0.2
+// @version      1.0
 // @description  Optimized version with better performance
 // @author       Phạm Dũng
 // @include      https://ttos.tcis.co/*
