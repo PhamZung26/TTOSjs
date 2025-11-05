@@ -1,431 +1,444 @@
 // ==UserScript==
 // @name         TTOS_highlight
 // @namespace    http://tampermonkey.net/
-// @version      0.1
-// @description  try to take over the world!
+// @version      0.2
+// @description  Optimized version with better performance
 // @author       Phạm Dũng
 // @include      https://ttos.tcis.co/*
 // @icon         https://www.google.com/s2/favicons?domain=tampermonkey.net
 // @grant        none
 // ==/UserScript==
 
-
 'use strict';
-document.getElementById("txt-search-cont").setAttribute("type", "number"); // Gửi lệnh này ở đây để set Type của textbox tìm kiếm là số
-document.getElementById("search-workinstruction").setAttribute("type", "number"); // Gửi lệnh này ở đây để set Type của textbox tìm kiếm là số
-var containerNo_booked = [];
-var containerNo_store = [];
-var currentLocation = [];
-var pod = [];
-var vessel = [];
-const interval_getlistBooked = new timer();
-interval_getlistBooked.start(async function() {
-    let rows = await fetch("https://sheets.googleapis.com/v4/spreadsheets/17JfxIWPJsNIisQFXu_lJvn_Vjb4b2oG3EeJ_3dZMk3Q/values/TonBai?key=AIzaSyCTp0GCp6TyvlU0VGfXbjaiLV-N6LECK2Y")
-    .then( r => r.json())
-    if (containerNo_store.length > 1){
-    	interval_getlistBooked.set_interval(900000);
-    	// nếu có dữ liệu rồi thì 15 phút mới lấy dữ liệu 1 lần
-    }else{
-    	interval_getlistBooked.set_interval(1000);
-    }
-    containerNo_booked = [];
-    containerNo_store = [];
-    currentLocation = [];
-    pod = [];
-    vessel = [];
-    for(const row of rows.values){
 
-        containerNo_store.push(row[0]);
-        currentLocation.push(row[2]);
-        pod.push(row[34]);
-
-        vessel.push(row[21]);
-
-        if(row[18] != ""){
-            containerNo_booked.push(row[0]);
-        }
-      }
-      //console.log(vessel);
-      //console.log(pod);
-
-}
-, 1000, true);
-
-
-
-
-var container_color = [];
-var colorOfContainer = [];
-
-const interval_getlistCustomColor = new timer();
-interval_getlistCustomColor.start(
-	async function () {
-
-    let rows = await fetch("https://sheets.googleapis.com/v4/spreadsheets/1yzxWwqqOsPINsbWLCMOZYt2cGNddXnfaqgqZqk4TgkE/values/XuatTau?key=AIzaSyCTp0GCp6TyvlU0VGfXbjaiLV-N6LECK2Y")
-    .then(r => r.json())
-
-    if (container_color.length > 1){
-    	interval_getlistCustomColor.set_interval(15000);
-    	// nếu có dữ liệu rồi thì 15 s mới lấy dữ liệu 1 lần
-    }else{
-    	interval_getlistCustomColor.set_interval(1000);
-    }
-    container_color = [];
-    colorOfContainer = [];
-      for(const row of rows.values){
-
-          if(row[2] == null){
-              container_color.push("");
-          } else{
-              container_color.push(row[2]);
-        }
-
-          if(row[0] == null){
-              colorOfContainer.push("");
-          } else{
-              colorOfContainer.push(row[0]);
-          }
-        }
-      console.log(new Date());
-      console.log(container_color);
-  }, 1000, true);
-
-  function insertAfter(referenceNode, newNode) {
-    referenceNode.parentNode.insertBefore(newNode, referenceNode.nextSibling);
-  }
-
-  function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-
-function timer()
-{
-var timer = {
-    running: false,
-    iv: 5000,
-    timeout: false,
-    cb : function(){},
-    start : function(cb,iv,sd){
-        var elm = this;
-        clearInterval(this.timeout);
-        this.running = true;
-        if(cb) this.cb = cb;
-        if(iv) this.iv = iv;
-        if(sd) elm.execute(elm);
-        this.timeout = setTimeout(function(){elm.execute(elm)}, this.iv);
+// ============================================
+// 1. CONSTANTS & CONFIG
+// ============================================
+const CONFIG = {
+    GOOGLE_API_KEY: 'AIzaSyCTp0GCp6TyvlU0VGfXbjaiLV-N6LECK2Y',
+    SPREADSHEET_IDS: {
+        TON_BAI: '17JfxIWPJsNIisQFXu_lJvn_Vjb4b2oG3EeJ_3dZMk3Q',
+        XUAT_TAU: '1yzxWwqqOsPINsbWLCMOZYt2cGNddXnfaqgqZqk4TgkE'
     },
-    execute : function(e){
-        if(!e.running) return false;
-        e.cb();
-        e.start();
+    INTERVALS: {
+        INITIAL: 1000,
+        BOOKED_DATA: 900000, // 15 phút
+        CUSTOM_COLOR: 15000,  // 15 giây
+        UI_UPDATE: 3000,
+        CHECK_CLEAN: 3000
     },
-    stop : function(){
-        this.running = false;
+    API_ENDPOINT: 'https://tc128hp.hopto.org/api/container/GetInFor',
+    MAX_CACHE_SIZE: 100
+};
+
+// ============================================
+// 2. STATE MANAGEMENT
+// ============================================
+const state = {
+    containerData: {
+        booked: new Set(),
+        store: [],
+        location: [],
+        pod: [],
+        vessel: []
     },
-    set_interval : function(iv){
-        clearInterval(this.timeout);
-        this.start(false, iv);
+    customColors: {
+        containers: [],
+        colors: []
+    },
+    cleanedCache: new Set()
+};
+
+// ============================================
+// 3. UTILITY FUNCTIONS
+// ============================================
+const utils = {
+    sleep: (ms) => new Promise(resolve => setTimeout(resolve, ms)),
+
+    insertAfter: (refNode, newNode) => {
+        refNode.parentNode.insertBefore(newNode, refNode.nextSibling);
+    },
+
+    createTimer: function() {
+        return {
+            running: false,
+            interval: 5000,
+            timeout: null,
+            callback: () => {},
+
+            start(cb, iv, immediate) {
+                clearTimeout(this.timeout);
+                this.running = true;
+                if (cb) this.callback = cb;
+                if (iv) this.interval = iv;
+                if (immediate) this.execute();
+                this.scheduleNext();
+            },
+
+            scheduleNext() {
+                if (!this.running) return;
+                this.timeout = setTimeout(() => this.execute(), this.interval);
+            },
+
+            execute() {
+                if (!this.running) return;
+                this.callback();
+                this.scheduleNext();
+            },
+
+            stop() {
+                this.running = false;
+                clearTimeout(this.timeout);
+            },
+
+            setInterval(iv) {
+                this.interval = iv;
+            }
+        };
     }
 };
-return timer;
-}
-  var searchCont = document.createElement("BUTTON");
-  searchCont.setAttribute("id", "searchCont");
-  searchCont.innerHTML = "Tìm cont";
-  searchCont.setAttribute("class", "btn btn-primary");
 
-  var oldElement = document.getElementById("txt-search-cont");
-  insertAfter(oldElement,searchCont);
-
-  searchCont.onclick = function(){
-      let textOfSearch = document.getElementById("txt-search-cont").value;
-
-      let resultSearch = [];
-      for(let i=0; i < containerNo_store.length; i++){
-
-          if(containerNo_store[i].substr(containerNo_store[i].length - textOfSearch.length) == textOfSearch){
-              resultSearch.push(currentLocation[i]);
-          }
-      }
-      if(resultSearch.length == 0 ){
-          searchCont.innerHTML = "Không tìm thấy";
-          sleep(2000).then(() => {
-              searchCont.innerHTML = "Tìm cont";
-          });
-      }
-      else if(resultSearch.length > 1){
-          searchCont.innerHTML = "Nhập chi tiết hơn";
-          sleep(2000).then(() => {
-              searchCont.innerHTML = "Tìm cont";
-          });
-      }else{
-          searchCont.innerHTML = resultSearch[0];
-          sleep(15000).then(() => {
-              searchCont.innerHTML = "Tìm cont";
-          });
-
-      }
-
-  }
-
-
-
-const interval = setInterval(function() {
-
-    var listContAtBay, listMethodAtList, listContAtList, containerNo;
-    listContAtBay = document.getElementsByClassName("cell-yard cell-container");
-    var listContForBreakLine = document.getElementsByClassName("container-no");
-
-    for (let i=0; i<listContForBreakLine.length; i++){
-        if(listContForBreakLine[i].innerHTML.length == 11){
-             listContForBreakLine[i].innerHTML = "<div style='text-align: left'>" + listContForBreakLine[i].innerHTML.substring(0,4) + "</div>" +"<br>" + "<div style='text-align: right'>" + listContForBreakLine[i].innerHTML.substring(4,11) + "</div>";
-
-            }
-    }
-
-
-
-
-
-
-
-    for (let i = 0; i < listContAtBay.length; i += 1) {
-        containerNo = listContAtBay[i].getAttribute("item-no");
-        let podOfCont = "";
-        let vesselOfCont = "";
-        // Get index of ContainerNo in store
-        let indexOfCont = containerNo_store.indexOf(containerNo);
-        if(indexOfCont != -1){
-            podOfCont = pod[indexOfCont].substring(2,5);
-            console.log(pod[indexOfCont]);
-            vesselOfCont = vessel[indexOfCont];
-        }
-        console.log(indexOfCont);
-        if(typeof(listContAtBay[i].children[2]) != "undefined"){
-            if(!listContAtBay[i].children[2].innerHTML.includes(podOfCont)){
-                listContAtBay[i].children[2].style.fontSize = "10px";
-                listContAtBay[i].children[2].innerHTML = listContAtBay[i].children[2].innerHTML + " - " + podOfCont;
-            }
-
-            if(!listContAtBay[i].innerHTML.includes(vesselOfCont)){
-                listContAtBay[i].innerHTML = listContAtBay[i].innerHTML + "<span style='font-size:10px;'>" + vesselOfCont + "</span>";
-            }
-
-        }
-
-
-
-        if(containerNo_booked.includes(containerNo)){
-            document.getElementsByClassName("cell-yard cell-container")[i].style.backgroundColor = "#ffcc99";
-        }
-        listMethodAtList = document.getElementsByClassName("chat-list-item-photo");
-        listContAtList = document.getElementsByClassName("wi-item workinstruction");
-        for(let j=0; j<listContAtList.length; j += 1){
-            if (containerNo == listContAtList[j].getAttribute("item-no")) {
-                console.log(containerNo);
-                var action = listContAtList[j].getAttribute("action");
-                var wqtype = listContAtList[j].getAttribute("wqtype");
-                if(wqtype == "GATE"){
-                    // Lệnh qua cổng
-                    document.getElementsByClassName("cell-yard cell-container")[i].style.backgroundColor = "yellow";
-                }else if(wqtype == "YARDCONSOL"){
-                    // Lệnh đảo chuyển
-                    document.getElementsByClassName("cell-yard cell-container")[i].style.backgroundColor = "green";
-                }else if(wqtype == "VESSEL"){
-                    if(action == "PICKUP"){
-                        // Lệnh xuất tàu
-                        document.getElementsByClassName("cell-yard cell-container")[i].style.backgroundColor = "#ff00ea";
-                    }else{
-                        // Lệnh nhập tàu
-                        document.getElementsByClassName("cell-yard cell-container")[i].style.backgroundColor = "red";
-                    }
-                }
-
-            }
-        }
-        if (container_color.indexOf(containerNo) != -1) {
-            // Nếu containerNo tồn tại trong list người dùng custom thì tô màu theo ý người dùng
-            if (colorOfContainer[container_color.indexOf(containerNo)] != "#ffffff") {
-                // Nếu người dùng tô màu trắng thì không tô lại, để màu mặc định của TTOS
-                document.getElementsByClassName("cell-yard cell-container")[i].style.backgroundColor = colorOfContainer[container_color.indexOf(containerNo)];
-            }
-
-        }
-
-    }
- }, 3000);
-
-var thongbao = document.createElement("span");
- thongbao.setAttribute("id","thongbao");
- var div = document.createElement("div");
- div.style.position = 'relative';
- div.style.display = 'block';
- var oldElement1 = document.getElementById("bat-selected");
- var chatlist = document.getElementById("wi-selected-id");
- document.getElementById("wi-selected-panel").style.height = '150px'
- //oldElement1.parentNode.parentNode.appendChild(div);
- //div.appendChild(thongbao);
- insertAfter(oldElement1,thongbao);
- thongbao.innerHTML = "";
- thongbao.style.marginInlineStart = "10px";
- thongbao.style.fontSize = "1.6rem";
- thongbao.style.color = 'white';
-
-// Dùng Set thay vì mảng để tra cứu nhanh hơn O(1)
-const danhSachTinhtrangVSCont = new Set();
-
-/**
- * 🧩 Thêm một container mới vào danh sách (tối đa 100 phần tử)
- * @param {string} moiThanhVien - Chuỗi mô tả tình trạng (vd: "CAIU9981692 đã VS")
- */
-function themThanhVien(moiThanhVien) {
-    // Nếu đã tồn tại thì bỏ qua
-    if (danhSachTinhtrangVSCont.has(moiThanhVien)) return;
-
-    // Nếu vượt quá 100 phần tử → xóa phần tử cũ nhất
-    if (danhSachTinhtrangVSCont.size >= 100) {
-        const firstItem = danhSachTinhtrangVSCont.values().next().value;
-        danhSachTinhtrangVSCont.delete(firstItem);
-    }
-
-    // Thêm mới
-    danhSachTinhtrangVSCont.add(moiThanhVien);
-    console.log(`🟢 Thêm: ${moiThanhVien} (${danhSachTinhtrangVSCont.size}/100)`);
-}
-
-/**
- * 🔍 Kiểm tra xem container đã có trong danh sách chưa
- * @param {string} tenThanhVien - Chuỗi cần kiểm tra
- * @returns {boolean} - true nếu đã tồn tại
- */
-function kiemTraThanhVien(tenThanhVien) {
-    return danhSachTinhtrangVSCont.has(tenThanhVien);
-}
-
-
- const CheckClean = setInterval(async function () {
-    const containerNo = document.getElementById("item-no-selected").innerHTML.trim();
-    const iso = document.getElementById("item-iso-selected").innerHTML.trim();
-    const plan = document.getElementById("planloc-selected").innerHTML.trim();
-    const thongbao = document.getElementById("thongbao");
-    console.log("Số cont đang kiểm tra: ", containerNo);
-    // Chỉ xử lý khi điều kiện phù hợp
-    if (iso.includes("E") && plan.includes("Y")) {
+// ============================================
+// 4. API FUNCTIONS
+// ============================================
+const api = {
+    async fetchGoogleSheet(spreadsheetId, sheetName) {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}?key=${CONFIG.GOOGLE_API_KEY}`;
         try {
-            console.log("Gửi request đến API mới...");
-            var myHeaders = new Headers();
-            myHeaders.append("Cookie", ".AspNetCore.Antiforgery.KK6xcoXdd8M=CfDJ8OsZ6q8EGv1Jg7DR69NjOiKedywNvHi1hVxTsz4P3_Uz7PTPgtKUSZJycxKFufe08AA9ZN70H4kmc9RcVzosFnVssGBZ8ukkvAuCqdQINtXYjymdJ-dHyWkmOV7RsgCKDUklQTbFts5vnYU_MkJ2OcI");
-
-            var requestOptions = {
-              method: 'GET',
-              headers: myHeaders,
-              redirect: 'follow'
-            };
-            const response = await fetch(`https://tc128hp.hopto.org/api/container/GetInFor?ContainerNo=${containerNo}`,requestOptions);
-            if (!response.ok) throw new Error("Không thể kết nối API");
-
-            const data = await response.json();
-            console.log("Kết quả:", data);
-
-            // Giải thích logic:
-            // - isDirty = true => container cần vệ sinh
-            // - isCleaned = true => container đã được vệ sinh
-            // - grade: có thể dùng để xác định chất lượng
-
-            if (data.isCleaned) {
-                hienThongBao(thongbao, containerNo, "đã VS", "success", data.grade);
-                if (!kiemTraThanhVien(containerNo + " đã VS")) {
-                    themThanhVien(containerNo + " đã VS");
-                }
-            }
-            else if (data.isDirty) {
-                hienThongBao(thongbao, containerNo, "chưa VS", "error", data.grade);
-            }
-            else {
-                hienThongBao(thongbao, containerNo, "không VS", "info", data.grade);
-                if (!kiemTraThanhVien(containerNo + " không VS")) {
-                    themThanhVien(containerNo + " không VS");
-                }
-            }
-
+            const response = await fetch(url);
+            return await response.json();
+        } catch (error) {
+            console.error(`Error fetching ${sheetName}:`, error);
+            return { values: [] };
         }
-        catch (error) {
-            console.error("Lỗi:", error);
-            hienThongBao(thongbao, containerNo, "Lỗi kết nối API", "warning");
-        }
+    },
 
-    } else {
-        thongbao.innerHTML = "";
-        thongbao.style.backgroundColor = "white";
+    async checkContainerCleaning(containerNo) {
+        const headers = new Headers();
+        headers.append("Cookie", ".AspNetCore.Antiforgery.KK6xcoXdd8M=CfDJ8OsZ6q8EGv1Jg7DR69NjOiKedywNvHi1hVxTsz4P3_Uz7PTPgtKUSZJycxKFufe08AA9ZN70H4kmc9RcVzosFnVssGBZ8ukkvAuCqdQINtXYjymdJ-dHyWkmOV7RsgCKDUklQTbFts5vnYU_MkJ2OcI");
+
+        try {
+            const response = await fetch(
+                `${CONFIG.API_ENDPOINT}?ContainerNo=${containerNo}`,
+                { method: 'GET', headers, redirect: 'follow' }
+            );
+
+            if (!response.ok) throw new Error('API connection failed');
+            return await response.json();
+        } catch (error) {
+            console.error('API Error:', error);
+            throw error;
+        }
     }
+};
 
-}, 3000);
+// ============================================
+// 5. DATA PROCESSORS
+// ============================================
+const dataProcessor = {
+    async updateBookedData() {
+        const data = await api.fetchGoogleSheet(CONFIG.SPREADSHEET_IDS.TON_BAI, 'TonBai');
 
-function hienThongBao(element, containerNo, text, type, grade = "") {
-    Object.assign(element.style, {
-        position: "relative",
-        zIndex: "9999",
-        padding: "10px 18px",
-        borderRadius: "12px",
-        fontWeight: "600",
-        color: "white",
-        display: "inline-block",
-        transition: "all 0.3s ease",
-        boxShadow: "0 3px 6px rgba(0,0,0,0.25)",
-        fontSize: "15px",
-        textAlign: "center",
-        minWidth: "220px",
-        marginTop: "6px",
-        marginBottom: "20px",
-        opacity: "0.97",
-        border: "1px solid rgba(255,255,255,0.2)",
-        backgroundClip: "padding-box",
-        overflow: "visible"
-    });
+        if (!data.values) return;
 
-    const gradePart = grade
-        ? `<span style="background:rgba(255,255,255,0.15);padding:2px 6px;border-radius:8px;margin-left:6px;">${grade}</span>`
-        : "";
+        // Reset state
+        state.containerData.booked.clear();
+        state.containerData.store = [];
+        state.containerData.location = [];
+        state.containerData.pod = [];
+        state.containerData.vessel = [];
 
-    const isDangerGrade = /^D/i.test(grade);
+        data.values.forEach(row => {
+            state.containerData.store.push(row[0] || '');
+            state.containerData.location.push(row[2] || '');
+            state.containerData.pod.push(row[34] || '');
+            state.containerData.vessel.push(row[21] || '');
 
-    if (isDangerGrade) {
-        element.style.background = "linear-gradient(90deg, #ff5252, #b71c1c)";
-        element.style.animation = "blinkRed 1s infinite alternate";
-        element.innerHTML = `⚠️ ${containerNo} ${text} - Cảnh báo chất lượng ${gradePart}`;
-    } else {
-        element.style.animation = "none";
-        switch (type) {
-            case "success":
-                element.style.background = "linear-gradient(90deg, #43a047, #2e7d32)";
-                element.innerHTML = `✅ ${containerNo} đã VS ${gradePart}`;
-                break;
-            case "error":
-                element.style.background = "linear-gradient(90deg, #e53935, #c62828)";
-                element.innerHTML = `❌ ${containerNo} chưa VS ${gradePart}`;
-                break;
-            case "info":
-                element.style.background = "linear-gradient(90deg, #1e88e5, #1565c0)";
-                element.innerHTML = `ℹ️ ${containerNo} không VS ${gradePart}`;
-                break;
-            case "warning": // ⚠️ thêm kiểu cảnh báo lỗi API
-                element.style.background = "linear-gradient(90deg, #f9a825, #f57f17)";
-                element.style.animation = "blinkYellow 1.2s infinite alternate";
-                element.innerHTML = `⚠️ ${text}`;
-                break;
-            default:
+            if (row[18]) {
+                state.containerData.booked.add(row[0]);
+            }
+        });
+    },
+
+    async updateCustomColors() {
+        const data = await api.fetchGoogleSheet(CONFIG.SPREADSHEET_IDS.XUAT_TAU, 'XuatTau');
+
+        if (!data.values) return;
+
+        state.customColors.containers = [];
+        state.customColors.colors = [];
+
+        data.values.forEach(row => {
+            state.customColors.containers.push(row[2] || '');
+            state.customColors.colors.push(row[0] || '');
+        });
+
+        console.log(new Date(), 'Custom colors updated:', state.customColors.containers.length);
+    }
+};
+
+// ============================================
+// 6. CACHE MANAGEMENT
+// ============================================
+const cache = {
+    add(item) {
+        if (state.cleanedCache.has(item)) return;
+
+        if (state.cleanedCache.size >= CONFIG.MAX_CACHE_SIZE) {
+            const firstItem = state.cleanedCache.values().next().value;
+            state.cleanedCache.delete(firstItem);
+        }
+
+        state.cleanedCache.add(item);
+        console.log(`🟢 Cached: ${item} (${state.cleanedCache.size}/${CONFIG.MAX_CACHE_SIZE})`);
+    },
+
+    has(item) {
+        return state.cleanedCache.has(item);
+    }
+};
+
+// ============================================
+// 7. UI FUNCTIONS
+// ============================================
+const ui = {
+    initializeSearchInputs() {
+        const searchCont = document.getElementById("txt-search-cont");
+        const searchWI = document.getElementById("search-workinstruction");
+
+        if (searchCont) searchCont.setAttribute("type", "number");
+        if (searchWI) searchWI.setAttribute("type", "number");
+    },
+
+    createSearchButton() {
+        const searchBtn = document.createElement("BUTTON");
+        searchBtn.id = "searchCont";
+        searchBtn.className = "btn btn-primary";
+        searchBtn.textContent = "Tìm cont";
+
+        const oldElement = document.getElementById("txt-search-cont");
+        if (oldElement) {
+            utils.insertAfter(oldElement, searchBtn);
+            searchBtn.onclick = () => this.handleSearch(searchBtn);
+        }
+    },
+
+    handleSearch(button) {
+        const textInput = document.getElementById("txt-search-cont");
+        if (!textInput) return;
+
+        const searchText = textInput.value;
+        const results = [];
+
+        state.containerData.store.forEach((cont, idx) => {
+            if (cont.endsWith(searchText)) {
+                results.push(state.containerData.location[idx]);
+            }
+        });
+
+        if (results.length === 0) {
+            button.textContent = "Không tìm thấy";
+            utils.sleep(2000).then(() => button.textContent = "Tìm cont");
+        } else if (results.length > 1) {
+            button.textContent = "Nhập chi tiết hơn";
+            utils.sleep(2000).then(() => button.textContent = "Tìm cont");
+        } else {
+            button.textContent = results[0];
+            utils.sleep(15000).then(() => button.textContent = "Tìm cont");
+        }
+    },
+
+    formatContainerNumbers() {
+        const elements = document.getElementsByClassName("container-no");
+
+        Array.from(elements).forEach(el => {
+            if (el.innerHTML.length === 11 && !el.innerHTML.includes('<br>')) {
+                const text = el.innerHTML;
+                el.innerHTML = `<div style='text-align: left'>${text.substring(0,4)}</div><br><div style='text-align: right'>${text.substring(4,11)}</div>`;
+            }
+        });
+    },
+
+    updateContainerColors() {
+        const containers = document.getElementsByClassName("cell-yard cell-container");
+        const workInstructions = document.getElementsByClassName("wi-item workinstruction");
+
+        Array.from(containers).forEach((container, i) => {
+            const containerNo = container.getAttribute("item-no");
+            if (!containerNo) return;
+
+            // Reset background
+            container.style.backgroundColor = '';
+
+            // Add POD and Vessel info
+            const idx = state.containerData.store.indexOf(containerNo);
+            if (idx !== -1) {
+                this.addContainerInfo(container, idx);
+            }
+
+            // Apply booking color
+            if (state.containerData.booked.has(containerNo)) {
+                container.style.backgroundColor = "#ffcc99";
+            }
+
+            // Apply work instruction colors
+            this.applyWorkInstructionColor(container, containerNo, workInstructions);
+
+            // Apply custom colors (highest priority)
+            this.applyCustomColor(container, containerNo);
+        });
+    },
+
+    addContainerInfo(container, dataIndex) {
+        const pod = state.containerData.pod[dataIndex];
+        const vessel = state.containerData.vessel[dataIndex];
+        const podShort = pod ? pod.substring(2, 5) : '';
+
+        if (container.children[2] && podShort && !container.children[2].innerHTML.includes(podShort)) {
+            container.children[2].style.fontSize = "10px";
+            container.children[2].innerHTML += ` - ${podShort}`;
+        }
+
+        if (vessel && !container.innerHTML.includes(vessel)) {
+            container.innerHTML += `<span style='font-size:10px;'>${vessel}</span>`;
+        }
+    },
+
+    applyWorkInstructionColor(container, containerNo, workInstructions) {
+        Array.from(workInstructions).forEach(wi => {
+            if (wi.getAttribute("item-no") === containerNo) {
+                const wqtype = wi.getAttribute("wqtype");
+                const action = wi.getAttribute("action");
+
+                const colorMap = {
+                    'GATE': 'yellow',
+                    'YARDCONSOL': 'green',
+                    'VESSEL_PICKUP': '#ff00ea',
+                    'VESSEL_OTHER': 'red'
+                };
+
+                if (wqtype === 'GATE') {
+                    container.style.backgroundColor = colorMap.GATE;
+                } else if (wqtype === 'YARDCONSOL') {
+                    container.style.backgroundColor = colorMap.YARDCONSOL;
+                } else if (wqtype === 'VESSEL') {
+                    container.style.backgroundColor = action === 'PICKUP'
+                        ? colorMap.VESSEL_PICKUP
+                        : colorMap.VESSEL_OTHER;
+                }
+            }
+        });
+    },
+
+    applyCustomColor(container, containerNo) {
+        const idx = state.customColors.containers.indexOf(containerNo);
+        if (idx !== -1) {
+            const color = state.customColors.colors[idx];
+            if (color && color !== "#ffffff") {
+                container.style.backgroundColor = color;
+            }
+        }
+    },
+
+    createNotificationArea() {
+        const notification = document.createElement("div");
+        notification.id = "thongbao";
+
+        Object.assign(notification.style, {
+            position: "fixed",
+            top: "10px",
+            right: "10px",
+            zIndex: "10000",
+            fontSize: "1.6rem",
+            color: "white",
+            pointerEvents: "none"
+        });
+
+        // Chèn vào đầu body để không phá vỡ cấu trúc
+        document.body.insertBefore(notification, document.body.firstChild);
+
+        return notification;
+    },
+
+    displayNotification(element, containerNo, text, type, grade = "") {
+        if (!element) return;
+
+        Object.assign(element.style, {
+            position: "relative",
+            zIndex: "9999",
+            padding: "10px 18px",
+            borderRadius: "12px",
+            fontWeight: "600",
+            color: "white",
+            display: "inline-block",
+            transition: "all 0.3s ease",
+            boxShadow: "0 3px 6px rgba(0,0,0,0.25)",
+            fontSize: "15px",
+            textAlign: "center",
+            minWidth: "220px",
+            marginTop: "6px",
+            marginBottom: "20px",
+            opacity: "0.97",
+            border: "1px solid rgba(255,255,255,0.2)"
+        });
+
+        const gradePart = grade
+            ? `<span style="background:rgba(255,255,255,0.15);padding:2px 6px;border-radius:8px;margin-left:6px;">${grade}</span>`
+            : "";
+
+        const isDanger = /^D/i.test(grade);
+
+        if (isDanger) {
+            element.style.background = "linear-gradient(90deg, #ff5252, #b71c1c)";
+            element.style.animation = "blinkRed 1s infinite alternate";
+            element.innerHTML = `⚠️ ${containerNo} ${text} - Cảnh báo ${gradePart}`;
+        } else {
+            element.style.animation = "none";
+            const styles = {
+                success: {
+                    bg: "linear-gradient(90deg, #43a047, #2e7d32)",
+                    icon: "✅",
+                    text: "đã VS"
+                },
+                error: {
+                    bg: "linear-gradient(90deg, #e53935, #c62828)",
+                    icon: "❌",
+                    text: "chưa VS"
+                },
+                info: {
+                    bg: "linear-gradient(90deg, #1e88e5, #1565c0)",
+                    icon: "ℹ️",
+                    text: "không VS"
+                },
+                warning: {
+                    bg: "linear-gradient(90deg, #f9a825, #f57f17)",
+                    icon: "⚠️",
+                    anim: "blinkYellow 1.2s infinite alternate"
+                }
+            };
+
+            const style = styles[type];
+            if (style) {
+                element.style.background = style.bg;
+                if (style.anim) element.style.animation = style.anim;
+                element.innerHTML = type === 'warning'
+                    ? `${style.icon} ${text}`
+                    : `${style.icon} ${containerNo} ${style.text} ${gradePart}`;
+            } else {
                 element.innerHTML = "";
                 element.style.background = "transparent";
-                break;
+            }
         }
-    }
 
-    // Thêm hiệu ứng cảnh báo nếu chưa có
-    if (!document.getElementById("blinkRedStyle")) {
+        this.injectAnimationStyles();
+    },
+
+    injectAnimationStyles() {
+        if (document.getElementById("blinkAnimations")) return;
+
         const style = document.createElement("style");
-        style.id = "blinkRedStyle";
-        style.innerHTML = `
+        style.id = "blinkAnimations";
+        style.textContent = `
             @keyframes blinkRed {
                 0% { box-shadow: 0 0 10px rgba(255,0,0,0.3); }
                 100% { box-shadow: 0 0 25px rgba(255,0,0,0.8); }
@@ -437,4 +450,94 @@ function hienThongBao(element, containerNo, text, type, grade = "") {
         `;
         document.head.appendChild(style);
     }
+};
+
+// ============================================
+// 8. CLEANING CHECK LOGIC
+// ============================================
+const cleaningChecker = {
+    async check() {
+        const containerNoEl = document.getElementById("item-no-selected");
+        const isoEl = document.getElementById("item-iso-selected");
+        const planEl = document.getElementById("planloc-selected");
+        const notificationEl = document.getElementById("thongbao");
+
+        if (!containerNoEl || !isoEl || !planEl || !notificationEl) return;
+
+        const containerNo = containerNoEl.innerHTML.trim();
+        const iso = isoEl.innerHTML.trim();
+        const plan = planEl.innerHTML.trim();
+
+        console.log("Checking container:", containerNo);
+
+        if (!iso.includes("E") || !plan.includes("Y")) {
+            notificationEl.innerHTML = "";
+            notificationEl.style.backgroundColor = "white";
+            return;
+        }
+
+        try {
+            const data = await api.checkContainerCleaning(containerNo);
+            console.log("Result:", data);
+
+            if (data.isCleaned) {
+                ui.displayNotification(notificationEl, containerNo, "đã VS", "success", data.grade);
+                cache.add(`${containerNo} đã VS`);
+            } else if (data.isDirty) {
+                ui.displayNotification(notificationEl, containerNo, "chưa VS", "error", data.grade);
+            } else {
+                ui.displayNotification(notificationEl, containerNo, "không VS", "info", data.grade);
+                cache.add(`${containerNo} không VS`);
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            ui.displayNotification(notificationEl, containerNo, "Lỗi kết nối API", "warning");
+        }
+    }
+};
+
+// ============================================
+// 9. INITIALIZATION
+// ============================================
+function initialize() {
+    // Setup UI
+    ui.initializeSearchInputs();
+    ui.createSearchButton();
+    ui.createNotificationArea();
+    ui.injectAnimationStyles();
+
+    // Setup data fetching timers
+    const bookedTimer = utils.createTimer();
+    bookedTimer.start(async () => {
+        await dataProcessor.updateBookedData();
+        bookedTimer.setInterval(
+            state.containerData.store.length > 1
+                ? CONFIG.INTERVALS.BOOKED_DATA
+                : CONFIG.INTERVALS.INITIAL
+        );
+    }, CONFIG.INTERVALS.INITIAL, true);
+
+    const colorTimer = utils.createTimer();
+    colorTimer.start(async () => {
+        await dataProcessor.updateCustomColors();
+        colorTimer.setInterval(
+            state.customColors.containers.length > 1
+                ? CONFIG.INTERVALS.CUSTOM_COLOR
+                : CONFIG.INTERVALS.INITIAL
+        );
+    }, CONFIG.INTERVALS.INITIAL, true);
+
+    // Setup UI update interval
+    setInterval(() => {
+        ui.formatContainerNumbers();
+        ui.updateContainerColors();
+    }, CONFIG.INTERVALS.UI_UPDATE);
+
+    // Setup cleaning check interval
+    setInterval(() => cleaningChecker.check(), CONFIG.INTERVALS.CHECK_CLEAN);
+
+    console.log("✅ TTOS Highlight initialized successfully");
 }
+
+// Start the script
+initialize();
