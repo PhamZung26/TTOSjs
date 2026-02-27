@@ -1,15 +1,4 @@
-// ==UserScript==
-// @name         TTOS_highlight
-// @namespace    http://tampermonkey.net/
-// @version      0.2
-// @description  Optimized version with better performance
-// @author       Phạm Dũng
-// @include      https://ttos.tcis.co/*
-// @icon         https://www.google.com/s2/favicons?domain=tampermonkey.net
-// @grant        none
-// ==/UserScript==
 
-'use strict';
 
 // ============================================
 // 1. CONSTANTS & CONFIG
