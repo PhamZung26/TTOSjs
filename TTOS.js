@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TTOS_highlight
 // @namespace    http://tampermonkey.net/
-// @version      1.0
+// @version      0.2
 // @description  Optimized version with better performance
 // @author       Phạm Dũng
 // @include      https://ttos.tcis.co/*
@@ -124,6 +124,10 @@ const api = {
             );
 
             if (!response.ok) throw new Error('API connection failed');
+            if (response.status === 204) {
+                return null; // hoặc return {}
+            }
+
             return await response.json();
         } catch (error) {
             console.error('API Error:', error);
@@ -360,78 +364,72 @@ const ui = {
         return notification;
     },
 
-    displayNotification(element, containerNo, text, type, grade = "") {
-        if (!element) return;
+    displayNotification(element, containerNo, text, type = "info", grade = "") {
+    if (!element) return;
 
-        Object.assign(element.style, {
-            position: "relative",
-            zIndex: "9999",
-            padding: "10px 18px",
-            borderRadius: "12px",
-            fontWeight: "600",
-            color: "white",
-            display: "inline-block",
-            transition: "all 0.3s ease",
-            boxShadow: "0 3px 6px rgba(0,0,0,0.25)",
-            fontSize: "15px",
-            textAlign: "center",
-            minWidth: "220px",
-            marginTop: "6px",
-            marginBottom: "20px",
-            opacity: "0.97",
-            border: "1px solid rgba(255,255,255,0.2)"
-        });
+    Object.assign(element.style, {
+        position: "relative",
+        zIndex: "9999",
+        padding: "10px 18px",
+        borderRadius: "12px",
+        fontWeight: "600",
+        color: "white",
+        display: "inline-block",
+        transition: "all 0.3s ease",
+        boxShadow: "0 3px 6px rgba(0,0,0,0.25)",
+        fontSize: "15px",
+        textAlign: "center",
+        minWidth: "220px",
+        marginTop: "6px",
+        marginBottom: "20px",
+        opacity: "0.97",
+        border: "1px solid rgba(255,255,255,0.2)"
+    });
 
-        const gradePart = grade
-            ? `<span style="background:rgba(255,255,255,0.15);padding:2px 6px;border-radius:8px;margin-left:6px;">${grade}</span>`
-            : "";
+    const gradePart = grade
+        ? `<span style="background:rgba(255,255,255,0.15);padding:2px 6px;border-radius:8px;margin-left:6px;">${grade}</span>`
+        : "";
 
-        const isDanger = /^D/i.test(grade);
+    const isDanger = grade && /^D/i.test(grade);
 
-        if (isDanger) {
-            element.style.background = "linear-gradient(90deg, #ff5252, #b71c1c)";
-            element.style.animation = "blinkRed 1s infinite alternate";
-            element.innerHTML = `⚠️ ${containerNo} ${text} - Cảnh báo ${gradePart}`;
-        } else {
-            element.style.animation = "none";
-            const styles = {
-                success: {
-                    bg: "linear-gradient(90deg, #43a047, #2e7d32)",
-                    icon: "✅",
-                    text: "đã VS"
-                },
-                error: {
-                    bg: "linear-gradient(90deg, #e53935, #c62828)",
-                    icon: "❌",
-                    text: "chưa VS"
-                },
-                info: {
-                    bg: "linear-gradient(90deg, #1e88e5, #1565c0)",
-                    icon: "ℹ️",
-                    text: "không VS"
-                },
-                warning: {
-                    bg: "linear-gradient(90deg, #f9a825, #f57f17)",
-                    icon: "⚠️",
-                    anim: "blinkYellow 1.2s infinite alternate"
-                }
-            };
-
-            const style = styles[type];
-            if (style) {
-                element.style.background = style.bg;
-                if (style.anim) element.style.animation = style.anim;
-                element.innerHTML = type === 'warning'
-                    ? `${style.icon} ${text}`
-                    : `${style.icon} ${containerNo} ${style.text} ${gradePart}`;
-            } else {
-                element.innerHTML = "";
-                element.style.background = "transparent";
-            }
+    const styles = {
+        success: {
+            bg: "linear-gradient(90deg, #43a047, #2e7d32)",
+            icon: "✅"
+        },
+        error: {
+            bg: "linear-gradient(90deg, #e53935, #c62828)",
+            icon: "❌"
+        },
+        info: {
+            bg: "linear-gradient(90deg, #1e88e5, #1565c0)",
+            icon: "ℹ️"
+        },
+        warning: {
+            bg: "linear-gradient(90deg, #f9a825, #f57f17)",
+            icon: "⚠️",
+            anim: "blinkYellow 1.2s infinite alternate"
+        },
+        danger: {
+            bg: "linear-gradient(90deg, #ff5252, #b71c1c)",
+            icon: "⚠️",
+            anim: "blinkRed 1s infinite alternate"
         }
+    };
 
-        this.injectAnimationStyles();
-    },
+    // Nếu grade bắt đầu bằng D → ép thành danger
+    const finalType = isDanger ? "danger" : type;
+    const style = styles[finalType] || styles.info;
+
+    element.style.background = style.bg;
+    element.style.animation = style.anim || "none";
+
+    element.innerHTML = `
+        ${style.icon} ${containerNo} ${text} ${gradePart}
+    `;
+
+    this.injectAnimationStyles();
+},
 
     injectAnimationStyles() {
         if (document.getElementById("blinkAnimations")) return;
@@ -479,6 +477,11 @@ const cleaningChecker = {
         try {
             const data = await api.checkContainerCleaning(containerNo);
             console.log("Result:", data);
+
+            if (!data) {
+                ui.displayNotification(notificationEl, containerNo, "không có dữ liệu", "info");
+                return;
+            }
 
             if (data.isCleaned) {
                 ui.displayNotification(notificationEl, containerNo, "đã VS", "success", data.grade);
