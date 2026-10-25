@@ -27,7 +27,7 @@ const CONFIG = {
         UI_UPDATE: 3000,
         CHECK_CLEAN: 3000
     },
-    API_ENDPOINT: 'https://tc128hp.hopto.org/api/container/GetInFor',
+    API_ENDPOINT: 'https://tc128.hopto.org/api/container/GetInFor',
     MAX_CACHE_SIZE: 100
 };
 
